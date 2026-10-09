@@ -34,7 +34,7 @@ NotebookLM uses Google session cookies — there is no public API key. You need 
 
 1. Run the login helper:
    ```bash
-   npx -y -p https://github.com/Nikolayco/n8n-nodes-notebooklm-sdk/raw/main/vendor/notebooklm-sdk-0.3.5-darakcheeff.tgz -p playwright@1.62.1 notebooklm-sdk login
+   npx -y -p https://github.com/Nikolayco/n8n-nodes-notebooklm-sdk/raw/main/vendor/notebooklm-sdk-0.3.5-nikolayco.1.tgz -p playwright@1.62.1 notebooklm-sdk login
    ```
 2. A browser window will open. Sign in to your Google account.
 3. The session is saved to `~/.notebooklm/session.json`.
