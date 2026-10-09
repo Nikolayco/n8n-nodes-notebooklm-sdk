@@ -4,3 +4,4 @@ dist
 *.js.map
 .DS_Store
 .env
+!vendor/*.tgz
