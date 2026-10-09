@@ -14,7 +14,7 @@
   - every `https://notebooklm.google.com` address became `https://notebook.google.com`;
   - the cookie filter was rewritten to match the host by domain rules (RFC 6265 style);
   - a desktop Chrome `User-Agent` header is sent with the page and RPC requests;
-  - `login` accepts either host when waiting for the sign-in to finish.
+  - `login` accepts either host when waiting for the sign-in to finish. The old `notebooklm.google.com` name is still accepted there on purpose, as an alias.
 - **Video patch added in this repository** (`vendor/patches/apply-sdk-patch.py`, applied to the build above), so that video generation
   sends the same request as [notebooklm-py](https://github.com/teng-lin/notebooklm-py) 0.8.x:
   - `VideoFormat.SHORT = 4` (vertical short-form video; its visual style is fixed by NotebookLM);
@@ -24,5 +24,8 @@
     (some accounts get the generation refused with the short form, notebooklm-py #1594).
   - Verified offline against notebooklm-py: for every video format and style the request is identical
     (20 cases, CommonJS and ESM builds), and the invalid combinations raise errors.
+- **Known issue (not fixed here):** the `login` helper does not wait for a sign-in on a browser profile that is not signed in yet,
+  because `notebook.google.com` now serves a landing page to signed-out visitors instead of redirecting to the Google sign-in. It then fails with
+  `Missing required cookie: SID`. Use notebooklm-py or a copied `Cookie` header instead (see the main README, Authentication).
 - Cinematic (Veo 3) needs a Google AI Pro/Ultra plan and ignores the language setting (English voice-over).
 - The node tarball built from this repository bundles this package (`bundleDependencies`), so installing the node does not download it again.
