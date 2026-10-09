@@ -7,7 +7,27 @@ import {
 	NodeOperationError,
 } from "n8n-workflow";
 
-import { NotebookLMClient } from "notebooklm-sdk";
+import {
+	NotebookLMClient,
+	type VideoFormatValue,
+	VideoStyle,
+	type VideoStyleValue,
+} from "notebooklm-sdk";
+
+// Node option value -> SDK style code. The option values are unchanged from earlier releases so
+// saved workflows keep their meaning; the SDK codes match the live NotebookLM web client.
+const VIDEO_STYLE_BY_OPTION: Record<number, VideoStyleValue> = {
+	1: VideoStyle.AUTO_SELECT,
+	2: VideoStyle.CUSTOM,
+	3: VideoStyle.CLASSIC,
+	4: VideoStyle.WHITEBOARD,
+	5: VideoStyle.KAWAII,
+	6: VideoStyle.ANIME,
+	7: VideoStyle.WATERCOLOR,
+	8: VideoStyle.RETRO_PRINT,
+	9: VideoStyle.HERITAGE,
+	10: VideoStyle.PAPER_CRAFT,
+};
 
 export class NotebookLm implements INodeType {
 	description: INodeTypeDescription = {
@@ -642,10 +662,12 @@ export class NotebookLm implements INodeType {
 				options: [
 					{ name: "Explainer", value: 1 },
 					{ name: "Brief", value: 2 },
-					{ name: "Cinematic", value: 3 },
+					{ name: "Cinematic (Veo 3, needs Google AI Pro/Ultra)", value: 3 },
+					{ name: "Short (vertical 9:16, fixed style)", value: 4 },
 				],
 				default: 1,
-				description: "The format of the video",
+				description:
+					"The format of the video. Cinematic and Short have a fixed look and ignore Style and Style Prompt.",
 				displayOptions: {
 					show: { resource: ["artifact"], operation: ["createVideo"] },
 				},
@@ -656,6 +678,7 @@ export class NotebookLm implements INodeType {
 				type: "options",
 				options: [
 					{ name: "Auto Select", value: 1 },
+					{ name: "Custom (use Style Prompt)", value: 2 },
 					{ name: "Classic", value: 3 },
 					{ name: "Whiteboard", value: 4 },
 					{ name: "Kawaii", value: 5 },
@@ -666,9 +689,24 @@ export class NotebookLm implements INodeType {
 					{ name: "Paper Craft", value: 10 },
 				],
 				default: 1,
-				description: "The visual style of the video",
+				description: "The visual style of the video (Explainer and Brief only)",
 				displayOptions: {
 					show: { resource: ["artifact"], operation: ["createVideo"] },
+					hide: { videoFormat: [3, 4] },
+				},
+			},
+			{
+				displayName: "Style Prompt",
+				name: "videoStylePrompt",
+				type: "string",
+				typeOptions: { rows: 4 },
+				default: "",
+				placeholder: "photorealistic real-world documentary footage, ...",
+				description:
+					"Describes the look of the video (English works best). Used only with Style = Custom, for Explainer or Brief.",
+				displayOptions: {
+					show: { resource: ["artifact"], operation: ["createVideo"], videoStyle: [2] },
+					hide: { videoFormat: [3, 4] },
 				},
 			},
 			{
@@ -1111,8 +1149,17 @@ export class NotebookLm implements INodeType {
 							...(sourceIds && { sourceIds }),
 						});
 					} else if (operation === "createVideo") {
-						const videoFormat = this.getNodeParameter("videoFormat", i) as 1 | 2 | 3;
-						const videoStyle = this.getNodeParameter("videoStyle", i) as 1 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+						const videoFormat = Number(this.getNodeParameter("videoFormat", i)) as VideoFormatValue;
+						const videoStyleOption = Number(this.getNodeParameter("videoStyle", i, 1));
+						const videoStylePrompt = String(this.getNodeParameter("videoStylePrompt", i, "") ?? "").trim();
+						// Cinematic and Short have a fixed look: never send a style for them.
+						const usesStyle = videoFormat === 1 || videoFormat === 2;
+						const videoStyle = usesStyle ? VIDEO_STYLE_BY_OPTION[videoStyleOption] : undefined;
+						if (usesStyle && videoStyle === undefined) {
+							throw new NodeOperationError(this.getNode(), `Unknown video style: ${videoStyleOption}`, {
+								itemIndex: i,
+							});
+						}
 						const videoInstructions = this.getNodeParameter("videoInstructions", i) as string;
 						const videoLanguage = this.getNodeParameter("videoLanguage", i) as string;
 						const videoSourceIdsRaw = this.getNodeParameter("videoSourceIds", i) as string;
@@ -1121,7 +1168,8 @@ export class NotebookLm implements INodeType {
 							: undefined;
 						result = await client.artifacts.createVideo(notebookId, {
 							format: videoFormat,
-							style: videoStyle,
+							...(videoStyle !== undefined && { style: videoStyle }),
+							...(videoStyle === VideoStyle.CUSTOM && { stylePrompt: videoStylePrompt }),
 							...(videoInstructions && { instructions: videoInstructions }),
 							...(videoLanguage && { language: videoLanguage }),
 							...(videoSourceIds && { sourceIds: videoSourceIds }),

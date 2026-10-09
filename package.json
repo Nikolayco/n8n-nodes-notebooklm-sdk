@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-notebooklm-sdk",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "n8n community node for NotebookLM — manage notebooks, sources, artifacts, chat, and notes.",
 	"keywords": [
 		"n8n-community-node-package"
@@ -43,7 +43,7 @@
 		]
 	},
 	"dependencies": {
-		"notebooklm-sdk": "https://github.com/darakcheeff/notebooklm-sdk/releases/download/v0.3.5-patch2/notebooklm-sdk-0.3.4.tgz"
+		"notebooklm-sdk": "file:vendor/notebooklm-sdk-0.3.5-nikolayco.1.tgz"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.7",
@@ -61,5 +61,8 @@
 	"publishConfig": {
 		"access": "public",
 		"provenance": true
-	}
+	},
+	"bundleDependencies": [
+		"notebooklm-sdk"
+	]
 }

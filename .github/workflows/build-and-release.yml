@@ -3,7 +3,7 @@ name: Build and Release
 on:
   push:
     branches:
-      - master
+      - main
   workflow_dispatch:
 
 permissions:
@@ -28,21 +28,22 @@ jobs:
       - name: Package tarball
         run: |
           npm pack
+          echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
           echo "PACKAGE_FILE=$(ls n8n-nodes-notebooklm-sdk-*.tgz)" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.3.0
-          name: "v0.3.0: Update notebooklm-sdk with domain migration fix"
+          tag_name: v${{ env.VERSION }}
+          name: "v${{ env.VERSION }}: notebook.google.com domain fix (patched SDK bundled)"
           body: |
             ## Changes
-            - Updated `notebooklm-sdk` dependency to include domain migration fix (`notebook.google.com`).
+            - Bundled the patched `notebooklm-sdk` (domain migration to `notebook.google.com`), so installing the node needs no extra download.
             
             ## Installation in n8n
             In your n8n directory (e.g. `~/.n8n/nodes` or in custom community node installation):
             ```bash
-            npm install https://github.com/darakcheeff/n8n-nodes-notebooklm-sdk/releases/download/v0.3.0/n8n-nodes-notebooklm-sdk-0.2.1.tgz
+            npm install https://github.com/Nikolayco/n8n-nodes-notebooklm-sdk/releases/download/v${{ env.VERSION }}/${{ env.PACKAGE_FILE }}
             ```
           files: |
             ${{ env.PACKAGE_FILE }}
